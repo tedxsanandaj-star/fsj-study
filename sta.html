@@ -111,8 +111,8 @@
     input.min = 0; input.max = 100; input.step = 1; input.value = 50;
 
     var ends = Core.el('div', 'slider-ends');
-    ends.appendChild(Core.el('span', null, 'کاملا'));
-    ends.appendChild(Core.el('span', null, 'اصلاً'));
+    ends.appendChild(Core.el('span', null, '+'));
+    ends.appendChild(Core.el('span', null, '-'));
 
     wrap.appendChild(val);
     wrap.appendChild(input);
