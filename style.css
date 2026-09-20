@@ -280,7 +280,13 @@ select:focus, input:focus, .opt:focus-visible, button:focus-visible {
 .num-btn.wide { grid-column: span 3; font-size: 1rem; font-weight: 600; }
 
 /* ───────── اسلایدر ───────── */
-.slider-wrap { margin: 20px 0 6px; }
+/* جهت کل بلوک عمداً LTR است، هم‌جهت با خود نوار لغزنده (چند خط
+   پایین‌تر). اگر این خط نباشد، صفحه RTL جای دو برچسب دو سرِ اسلایدر
+   را در نمایش عوض می‌کند ولی چپ/راستِ واقعیِ نوار عوض نمی‌شود، و
+   نتیجه این می‌شود که کشیدن دستگیره به‌سمت برچسب «کاملاً» مقدار را
+   به‌جای بالا بردن، پایین می‌آورد. رفع اشکال: هر دو (نوار و برچسب‌ها)
+   باید در یک جهت باشند. */
+.slider-wrap { margin: 20px 0 6px; direction: ltr; }
 input[type="range"] {
   width: 100%; height: 40px; background: transparent; appearance: none; direction: ltr;
 }
