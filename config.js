@@ -10,7 +10,7 @@ window.CFG = {
   /* ───── ۱. آدرس ذخیره داده (از Google Apps Script) ─────
      بعد از Deploy کردن اسکریپت، آدرسی که می‌گیرید را اینجا بگذارید.
      باید با /exec تمام شود.                                       */
-  API_URL: 'PASTE_YOUR_APPS_SCRIPT_URL_HERE',
+  API_URL: 'https://script.google.com/macros/s/AKfycbyzhacd93qnF5ER3Sv103TFrBCXP9abXD34COhbr_NA24JVvHhJHYgEg2gSObcDi0Ue/exec',
 
   /* ───── ۲. محل تصاویر چهره ─────
      تصاویر داخل همین پوشه هستند؛ این مقدار را تغییر ندهید.       */
@@ -37,10 +37,10 @@ window.CFG = {
   /* ───── ۴. آدرس عمومی مطالعه ─────
      برای ساخت لینک دعوت و بررسی سلامت. مثال:
      'https://myname.github.io/fsj-study/'                          */
-  SITE_BASE: 'https://YOUR_USERNAME.github.io/fsj-study/',
+  SITE_BASE: 'https://tedxsanandaj-star.github.io/fsj-study/',
 
   /* ───── ۵. ایمیل تماس برای شرکت‌کنندگان ───── */
-  CONTACT_EMAIL: 'your.email@example.com',
+  CONTACT_EMAIL: 'aso.shojaie@gmail.com',
 
 
   /* ══════════ از اینجا به بعد را فقط در صورت نیاز تغییر دهید ══════════ */
