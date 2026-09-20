@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>پایان</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="center-screen" style="min-height:26dvh">
+    <div class="big-mark">✔</div>
+    <h1 style="margin:0">تمام شد. ممنون از وقتی که گذاشتید.</h1>
+  </div>
+
+  <div class="card">
+    <p style="margin:0">
+      پاسخ‌های شما ثبت شد و به ساخت یک مرجع ایرانی کمک کرد که تا امروز وجود نداشته است.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>اگر دوست دارید در قرعه‌کشی و گزارش عملکرد باشید</h2>
+    <p class="small">
+      شماره موبایل اختیاری است. جدا از پاسخ‌هایتان نگهداری می‌شود و در هیچ تحلیلی وارد نمی‌شود.
+      فقط برای فرستادن گزارش عملکرد و اطلاع‌رسانی قرعه‌کشی استفاده می‌شود.
+    </p>
+    <label class="field">
+      <span>شماره موبایل</span>
+      <input type="tel" id="phone" inputmode="numeric" maxlength="11" placeholder="۰۹…">
+    </label>
+    <button class="btn" id="send" type="button">ثبت شماره</button>
+    <button class="btn ghost small" id="skip" type="button">نمی‌خواهم شماره بدهم</button>
+    <div id="phmsg"></div>
+  </div>
+
+  <div class="card" id="codebox">
+    <h2>کد پیگیری شما</h2>
+    <div class="code-box" id="pid">…</div>
+    <p class="small" style="margin:0">اگر لازم شد با ما تماس بگیرید، این کد را همراه داشته باشید.</p>
+  </div>
+
+  <div class="card">
+    <h2>وضعیت ارسال</h2>
+    <p class="small" id="qstate">در حال بررسی…</p>
+    <button class="btn ghost small" id="retry" type="button" style="display:none">تلاش دوباره برای ارسال</button>
+    <button class="btn ghost small" id="dl" type="button">ذخیره یک نسخه پشتیبان روی گوشی</button>
+    <p class="small">
+      اگر ارسال با مشکل روبه‌رو شد، فایل پشتیبان را ذخیره کنید و برای ما بفرستید:
+      <span id="mail"></span>
+    </p>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+  Core.boot({ guard: false, bar: false });
+  var S = Core.session();
+
+  Core.$('#pid').textContent = S.pid;
+  Core.$('#mail').textContent = CFG.CONTACT_EMAIL || '';
+
+  /* ───── ثبت پایان جلسه ───── */
+  var done = Core.store('done') || {};
+  if (!done['complete.html']) {
+    Core.Q.push({
+      task_type: 'session_complete',
+      total_minutes: Math.round((Date.now() - S.t0) / 60000),
+      steps_done: Object.keys(done).length,
+      steps_json: JSON.stringify(done)
+    });
+    Core.markDone('complete.html');
+  }
+
+  /* ───── شماره موبایل ───── */
+  function toEn(s) {
+    return s.replace(/[۰-۹]/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d); })
+            .replace(/[٠-٩]/g, function (d) { return '٠١٢٣٤٥٦٧٨٩'.indexOf(d); });
+  }
+
+  Core.$('#send').addEventListener('click', function () {
+    var raw = toEn(Core.$('#phone').value).replace(/\D/g, '');
+    var msg = Core.$('#phmsg');
+    if (!/^09\d{9}$/.test(raw)) {
+      msg.innerHTML = '<div class="err">شماره باید ۱۱ رقم باشد و با ۰۹ شروع شود.</div>';
+      return;
+    }
+    this.disabled = true;
+    this.textContent = 'در حال ثبت…';
+    // شماره در یک رکورد جداگانه ذخیره می‌شود، نه کنار پاسخ‌ها
+    Core.Q.push({ task_type: 'contact_info', phone: raw }).then(function () {
+      msg.innerHTML = '<div class="note">شماره شما ثبت شد.</div>';
+      Core.$('#send').textContent = 'ثبت شد';
+      Core.$('#skip').style.display = 'none';
+      refresh();
+    });
+  });
+
+  Core.$('#skip').addEventListener('click', function () {
+    Core.$('#phmsg').innerHTML = '<p class="small">باشد. شرکت شما همچنان ثبت شده است.</p>';
+    Core.$('#send').style.display = 'none';
+    this.style.display = 'none';
+  });
+
+  /* ───── وضعیت صف ارسال ───── */
+  function refresh() {
+    var n = Core.Q.all().length;
+    var st = Core.$('#qstate');
+    if (n === 0) {
+      st.textContent = 'همه پاسخ‌های شما با موفقیت ارسال شد.';
+      Core.$('#retry').style.display = 'none';
+    } else {
+      st.innerHTML = '<strong>' + Core.fa(n) + ' بخش هنوز ارسال نشده است.</strong> ' +
+        'اینترنت را بررسی کنید و دکمه زیر را بزنید.';
+      Core.$('#retry').style.display = '';
+    }
+  }
+
+  Core.$('#retry').addEventListener('click', function () {
+    this.textContent = 'در حال ارسال…';
+    var self = this;
+    Core.Q.flush().then(function () {
+      self.textContent = 'تلاش دوباره برای ارسال';
+      refresh();
+    });
+  });
+
+  Core.$('#dl').addEventListener('click', function () {
+    var data = {
+      session: S,
+      backup: Core.store('backup') || [],
+      pending: Core.Q.all()
+    };
+    var blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'fsj_' + S.pid + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+
+  Core.Q.flush().then(refresh);
+  setTimeout(refresh, 3000);
+})();
+</script>
+</body>
+</html>

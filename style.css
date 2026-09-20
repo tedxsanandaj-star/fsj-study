@@ -1,0 +1,381 @@
+/* ══════════════════════════════════════════════════════════════
+   style.css — ظاهر مشترک همه صفحه‌های مطالعه
+   طراحی برای: گوشی موبایل، سواد پایین، چشم خسته، اینترنت ضعیف
+   ══════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'Vazirmatn';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn%5Bwght%5D.woff2') format('woff2');
+}
+
+:root {
+  --paper:   #F7F4EE;
+  --surface: #FFFFFF;
+  --ink:     #201E1A;
+  --ink-2:   #5C574E;
+  --line:    #E2DCD1;
+  --accent:  #0F6E64;
+  --accent-soft: #E3F0ED;
+  --warm:    #C8871F;
+  --ok:      #2F7A46;
+  --stop:    #A63A2E;
+  --radius:  16px;
+  --tap:     52px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:   #17161A;
+    --surface: #211F25;
+    --ink:     #F1EDE6;
+    --ink-2:   #A9A296;
+    --line:    #35323A;
+    --accent:  #4FBFAE;
+    --accent-soft: #1C3A36;
+    --warm:    #E0A63C;
+    --ok:      #5FC67F;
+    --stop:    #E2705F;
+  }
+}
+:root[data-theme="dark"] {
+  --paper:#17161A; --surface:#211F25; --ink:#F1EDE6; --ink-2:#A9A296;
+  --line:#35323A; --accent:#4FBFAE; --accent-soft:#1C3A36;
+  --warm:#E0A63C; --ok:#5FC67F; --stop:#E2705F;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html { font-size: 17px; }
+@media (max-width: 380px) { html { font-size: 16px; } }
+
+body {
+  font-family: Vazirmatn, 'IRANSans', 'Segoe UI', Tahoma, system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  direction: rtl;
+  line-height: 1.85;
+  min-height: 100dvh;
+  padding: 0 0 88px;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: contain;
+}
+
+.wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+
+/* ───────── نوار پیشرفت بالای صفحه ───────── */
+.bar {
+  position: sticky; top: 0; z-index: 40;
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  padding: 10px 16px 9px;
+}
+.bar-inner { max-width: 640px; margin: 0 auto; }
+.bar-row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; margin-bottom: 7px;
+}
+.bar-name { font-size: .88rem; font-weight: 700; color: var(--ink); }
+.bar-count { font-size: .78rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.track { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.fill { height: 100%; background: var(--accent); border-radius: 99px; width: 0; transition: width .35s ease; }
+
+/* ───────── متن ───────── */
+h1 { font-size: 1.45rem; line-height: 1.5; font-weight: 700; margin: 22px 0 10px; }
+h2 { font-size: 1.12rem; line-height: 1.6; font-weight: 700; margin: 26px 0 10px; }
+p  { margin: 0 0 12px; max-width: 62ch; }
+.lead { font-size: 1.05rem; color: var(--ink-2); }
+.small { font-size: .85rem; color: var(--ink-2); line-height: 1.75; }
+strong { font-weight: 700; }
+
+/* ───────── کارت ───────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin: 14px 0;
+}
+.card.tight { padding: 14px; }
+.card h2:first-child { margin-top: 0; }
+
+.note {
+  background: var(--accent-soft);
+  border-radius: 12px;
+  padding: 13px 15px;
+  margin: 14px 0;
+  font-size: .93rem;
+  line-height: 1.8;
+}
+
+/* ───────── سؤال و گزینه ───────── */
+.q-text {
+  font-size: 1.08rem;
+  font-weight: 600;
+  line-height: 1.8;
+  margin-bottom: 16px;
+}
+.q-hint { font-size: .88rem; color: var(--ink-2); margin: -8px 0 14px; }
+
+.opts { display: flex; flex-direction: column; gap: 9px; }
+
+.opt {
+  display: flex; align-items: flex-start; gap: 12px;
+  min-height: var(--tap);
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: 13px;
+  padding: 13px 14px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1.75;
+  text-align: right;
+  width: 100%;
+  color: var(--ink);
+  font-family: inherit;
+  transition: border-color .15s, background .15s;
+}
+.opt:hover { border-color: var(--accent); }
+.opt:active { transform: scale(.995); }
+.opt[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  border-width: 2px;
+  padding: 12.5px 13.5px;
+}
+.opt-key {
+  flex: 0 0 26px; height: 26px; border-radius: 50%;
+  background: var(--paper); border: 1.5px solid var(--line);
+  display: grid; place-items: center;
+  font-size: .82rem; font-weight: 700; color: var(--ink-2);
+  margin-top: 2px;
+}
+.opt[aria-pressed="true"] .opt-key {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.opt-body { flex: 1; }
+
+/* ───────── طیف لیکرت ───────── */
+.likert { margin-top: 6px; }
+.likert-scale {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;
+}
+.likert-btn {
+  min-height: 48px; border-radius: 11px;
+  border: 1.5px solid var(--line); background: var(--surface);
+  color: var(--ink); font-family: inherit; font-size: .95rem; font-weight: 600;
+  cursor: pointer;
+}
+.likert-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.likert-ends {
+  display: flex; justify-content: space-between;
+  font-size: .78rem; color: var(--ink-2); margin-top: 7px;
+}
+
+/* ───────── لیست کشویی ───────── */
+label.field { display: block; margin: 16px 0 0; }
+label.field > span { display: block; font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
+select, input[type="text"], input[type="tel"] {
+  width: 100%; min-height: var(--tap);
+  background: var(--surface); color: var(--ink);
+  border: 1.5px solid var(--line); border-radius: 13px;
+  padding: 0 14px; font-family: inherit; font-size: 1rem;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-2) 50%),
+                    linear-gradient(135deg, var(--ink-2) 50%, transparent 50%);
+  background-position: 16px calc(50% - 2px), 21px calc(50% - 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+input[type="text"], input[type="tel"] { background-image: none; }
+select:focus, input:focus, .opt:focus-visible, button:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+
+/* ───────── دکمه ───────── */
+.btn {
+  display: block; width: 100%; min-height: 56px;
+  border: none; border-radius: 15px;
+  background: var(--accent); color: #fff;
+  font-family: inherit; font-size: 1.06rem; font-weight: 700;
+  cursor: pointer; margin-top: 20px;
+}
+.btn[disabled] { opacity: .38; cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.btn.small { min-height: 46px; font-size: .95rem; margin-top: 10px; }
+
+.footbar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+}
+.footbar .inner { max-width: 640px; margin: 0 auto; }
+.footbar .btn { margin-top: 0; }
+
+/* ───────── تکلیف چهره ───────── */
+.stage { text-align: center; padding: 4px 0 0; }
+.stage-label { font-size: .9rem; color: var(--ink-2); margin-bottom: 10px; }
+.target-box {
+  width: 148px; height: 148px; margin: 0 auto 6px;
+  border-radius: 14px; overflow: hidden;
+  border: 3px solid var(--accent); background: var(--line);
+}
+.target-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mask-box { width: 148px; height: 148px; margin: 0 auto 6px; border-radius: 14px; overflow: hidden; }
+
+.grid4 {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px;
+}
+.face-opt {
+  border: 2.5px solid var(--line); border-radius: 14px;
+  overflow: hidden; cursor: pointer; background: var(--surface);
+  padding: 0; position: relative; display: block; width: 100%;
+}
+.face-opt img { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; }
+.face-opt .k {
+  position: absolute; top: 7px; right: 7px;
+  background: rgba(0,0,0,.6); color: #fff;
+  width: 25px; height: 25px; border-radius: 50%;
+  display: grid; place-items: center; font-size: .82rem; font-weight: 700;
+}
+.face-opt[aria-pressed="true"] { border-color: var(--accent); }
+.face-opt[aria-pressed="true"]::after {
+  content: ''; position: absolute; inset: 0;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* ───────── بازی سرمایه‌گذاری ───────── */
+.partners { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0 4px; }
+.partner { text-align: center; }
+.partner img {
+  width: 100%; max-width: 130px; aspect-ratio: 1/1;
+  object-fit: cover; border-radius: 14px; border: 2px solid var(--line);
+}
+.partner-name { font-size: .95rem; font-weight: 700; margin-top: 7px; }
+.partner-mult {
+  display: inline-block; margin-top: 4px; font-size: .86rem;
+  background: var(--accent-soft); border-radius: 99px; padding: 3px 11px;
+  font-weight: 600;
+}
+.split-opt { text-align: right; }
+.split-line { font-size: 1rem; font-weight: 600; }
+.split-sub { font-size: .84rem; color: var(--ink-2); }
+
+/* ───────── ایشیهارا ───────── */
+.plate {
+  width: min(280px, 78vw); aspect-ratio: 1/1;
+  margin: 0 auto 14px; display: block; border-radius: 50%;
+  background: #fff;
+}
+.num-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
+.num-btn {
+  min-height: 56px; border-radius: 13px; border: 1.5px solid var(--line);
+  background: var(--surface); color: var(--ink);
+  font-family: inherit; font-size: 1.25rem; font-weight: 700; cursor: pointer;
+}
+.num-btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.num-btn.wide { grid-column: span 3; font-size: 1rem; font-weight: 600; }
+
+/* ───────── اسلایدر ───────── */
+.slider-wrap { margin: 20px 0 6px; }
+input[type="range"] {
+  width: 100%; height: 40px; background: transparent; appearance: none; direction: ltr;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 10px; border-radius: 99px;
+  background: linear-gradient(90deg, var(--line), var(--accent));
+}
+input[type="range"]::-moz-range-track {
+  height: 10px; border-radius: 99px;
+  background: linear-gradient(90deg, var(--line), var(--accent));
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--surface); border: 3px solid var(--accent); margin-top: -12px;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--surface); border: 3px solid var(--accent);
+}
+.slider-val { text-align: center; font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+.slider-ends { display: flex; justify-content: space-between; font-size: .84rem; color: var(--ink-2); }
+
+/* ───────── ویدیو ───────── */
+.video-shell {
+  position: relative; background: #000; border-radius: 14px;
+  overflow: hidden; margin: 14px 0;
+}
+.video-shell video { width: 100%; display: block; }
+.video-guard { position: absolute; inset: 0; background: transparent; }
+.video-status {
+  display: flex; align-items: center; gap: 10px;
+  font-size: .92rem; color: var(--ink-2); margin-top: 4px;
+}
+.video-status .track { flex: 1; }
+
+/* ───────── شبکه تماس بین‌گروهی ───────── */
+.contact-row { border-bottom: 1px solid var(--line); padding: 14px 0; }
+.contact-row:last-child { border-bottom: none; }
+.contact-name { font-size: 1rem; font-weight: 700; margin-bottom: 9px; }
+.chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.chip {
+  min-height: 46px; border-radius: 11px; border: 1.5px solid var(--line);
+  background: var(--surface); color: var(--ink);
+  font-family: inherit; font-size: .8rem; font-weight: 600;
+  cursor: pointer; padding: 3px 1px; line-height: 1.35;
+}
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sub-label { font-size: .85rem; color: var(--ink-2); margin: 10px 0 6px; }
+
+/* ───────── وضعیت / پیام ───────── */
+.center-screen {
+  min-height: 62dvh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center; gap: 14px;
+}
+.big-mark { font-size: 3rem; line-height: 1; }
+.spinner {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid var(--line); border-top-color: var(--accent);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.toast {
+  position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: var(--paper);
+  padding: 11px 18px; border-radius: 99px; font-size: .9rem;
+  z-index: 60; max-width: 90vw; text-align: center;
+}
+
+.pill {
+  display: inline-block; background: var(--accent-soft);
+  border-radius: 99px; padding: 4px 13px; font-size: .84rem; font-weight: 600;
+}
+.code-box {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  background: var(--surface); border: 1.5px dashed var(--accent);
+  border-radius: 13px; padding: 15px; text-align: center;
+  font-size: 1.3rem; font-weight: 700; letter-spacing: 2px;
+  color: var(--accent); direction: ltr; margin: 12px 0;
+}
+
+ul.plain { list-style: none; }
+ul.plain li {
+  position: relative; padding-right: 22px; margin-bottom: 9px; font-size: .97rem;
+}
+ul.plain li::before {
+  content: '—'; position: absolute; right: 0; top: 0; color: var(--accent); font-weight: 700;
+}
+
+.err {
+  background: color-mix(in srgb, var(--stop) 12%, transparent);
+  border-right: 4px solid var(--stop);
+  border-radius: 10px; padding: 12px 14px; margin: 12px 0; font-size: .93rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}

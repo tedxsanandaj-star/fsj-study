@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>نگاه اول</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap"><div id="app"></div></div>
+
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="trials_sta.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   ارزیابی سریع اعتماد (STA) — بند الف-۵.۳ پیوست الف
+
+   هر چهره ۵۰۰ میلی‌ثانیه نمایش داده می‌شود؛ این مدت برای پردازش
+   ساختاری کامل چهره کافی است ولی اجازه تأمل کنترل‌شده نمی‌دهد.
+   سپس اسلایدر ۰ تا ۱۰۰ ظاهر می‌شود و زمان واکنش از لحظه نمایش
+   اسلایدر تا نخستین حرکت آن ثبت می‌گردد.
+
+   محدودیت: زمان واکنش مرورگر تحت تأثیر تأخیر سخت‌افزار و نرم‌افزار
+   است و «زمان تصمیم تقریبی» محسوب می‌شود؛ تحلیل‌های تأییدی مبتنی
+   بر RT دقیق به فاز ۲ منتقل شده‌اند.
+   ══════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  var b = Core.boot();
+  if (!b) return;
+
+  var trials = Core.shuffle(STA.trials);
+  var app = Core.$('#app');
+  var idx = 0, responses = [];
+  var log = new Core.Logger('sta');
+
+  app.innerHTML = '<div class="center-screen"><div class="spinner"></div>' +
+    '<p class="small">در حال آماده‌سازی…</p></div>';
+  Core.preload(trials.map(function (t) { return Core.faceURL(t.face); })).then(intro);
+
+  function intro() {
+    app.innerHTML = '';
+    var w = Core.el('div');
+    w.appendChild(Core.el('h1', null, 'نگاه اول'));
+    var p = Core.el('p', 'lead');
+    p.textContent = 'چند عکس برای لحظه‌ای کوتاه نشان داده می‌شود. بعد از هر عکس، ' +
+      'با یک خط‌کش می‌گویید چقدر احساس می‌کنید می‌شود به آن آدم اعتماد کرد.';
+    w.appendChild(p);
+
+    var card = Core.el('div', 'card');
+    var ul = Core.el('ul', 'plain');
+    [
+      'هیچ جواب درستی وجود ندارد. اولین حسی که به شما دست می‌دهد کافی است.',
+      'عکس‌ها خیلی سریع می‌آیند و می‌روند؛ فقط نگاه کنید.',
+      Core.fa(trials.length) + ' عکس است و کمتر از دو دقیقه طول می‌کشد.'
+    ].forEach(function (t) { ul.appendChild(Core.el('li', null, t)); });
+    card.appendChild(ul);
+    w.appendChild(card);
+
+    var btn = Core.el('button', 'btn', 'شروع');
+    btn.type = 'button';
+    btn.addEventListener('click', function () {
+      this.disabled = true;
+      app.innerHTML = '';
+      fixation();
+    }, { once: true });
+    var f = Core.el('div', 'footbar'), i = Core.el('div', 'inner');
+    i.appendChild(btn); f.appendChild(i); w.appendChild(f);
+    app.appendChild(w);
+    window.scrollTo(0, 0);
+  }
+
+  /* نقطه تثبیت ۶۰۰ میلی‌ثانیه، سپس چهره */
+  function fixation() {
+    if (idx >= trials.length) return done();
+    Core.setBarCount('عکس ' + Core.fa(idx + 1) + ' از ' + Core.fa(trials.length));
+    Core.setBarFill(64 + (idx / trials.length) * 4);
+
+    app.innerHTML = '<div class="center-screen"><div style="font-size:2.4rem">+</div></div>';
+    setTimeout(showFace, 600);
+  }
+
+  function showFace() {
+    var t = trials[idx];
+    app.innerHTML = '';
+    var stage = Core.el('div', 'stage');
+    var box = Core.el('div', 'target-box');
+    box.style.width = box.style.height = '190px';
+    var im = Core.el('img');
+    im.src = Core.faceURL(t.face);
+    im.alt = '';
+    box.appendChild(im);
+    stage.appendChild(box);
+    app.appendChild(stage);
+
+    var onset = Core.now();
+    setTimeout(function () { askRating(t, onset); }, CFG.STA_FACE_MS);
+  }
+
+  function askRating(t, onset) {
+    app.innerHTML = '';
+    var card = Core.el('div', 'card');
+    card.appendChild(Core.el('div', 'q-text', 'چقدر حس می‌کنید می‌شود به این آدم اعتماد کرد؟'));
+
+    var wrap = Core.el('div', 'slider-wrap');
+    var val = Core.el('div', 'slider-val', '—');
+    var input = Core.el('input');
+    input.type = 'range';
+    input.min = 0; input.max = 100; input.step = 1; input.value = 50;
+
+    var ends = Core.el('div', 'slider-ends');
+    ends.appendChild(Core.el('span', null, 'اصلاً'));
+    ends.appendChild(Core.el('span', null, 'کاملاً'));
+
+    wrap.appendChild(val);
+    wrap.appendChild(input);
+    wrap.appendChild(ends);
+    card.appendChild(wrap);
+    app.appendChild(card);
+
+    var t0 = Core.now();
+    var firstMove = null;
+    var moves = 0;
+    var answered = false;
+
+    function onMove() {
+      if (firstMove === null) firstMove = Core.now() - t0;
+      moves++;
+      answered = true;
+      val.textContent = Core.fa(input.value);
+      go.disabled = false;
+    }
+    input.addEventListener('input', onMove);
+
+    var go = Core.el('button', 'btn', 'تأیید');
+    go.type = 'button';
+    go.disabled = true;
+    var f = Core.el('div', 'footbar'), i = Core.el('div', 'inner');
+    i.appendChild(go); f.appendChild(i); app.appendChild(f);
+
+    var timer = CFG.TIMEOUT_STA > 0
+      ? setTimeout(function () { record(true); }, CFG.TIMEOUT_STA) : null;
+    go.addEventListener('click', function () { record(false); });
+
+    var recorded = false;
+    function record(timeout) {
+      if (recorded) return;      // در برابر دو بار زدن سریع
+      recorded = true;
+      if (timer) clearTimeout(timer);
+      responses.push({
+        i: idx + 1,
+        id: t.id,
+        face: t.face,
+        cond: t.r,
+        spd: t.s,
+        rating: answered ? +input.value : null,
+        rt_first_move_ms: firstMove,
+        rt_confirm_ms: Core.now() - t0,
+        n_moves: moves,
+        face_onset_offset_ms: t0 - onset,
+        timeout: timeout ? 1 : 0
+      });
+      log.mark('sta', { id: t.id, v: answered ? +input.value : null, rt: firstMove });
+      idx++;
+      fixation();
+    }
+
+    window.scrollTo(0, 0);
+  }
+
+  function done() {
+    app.innerHTML = '<div class="center-screen"><div class="spinner"></div>' +
+      '<p class="small">در حال ذخیره…</p></div>';
+
+    function pick(c) {
+      return responses.filter(function (r) { return r.cond === c && r.rating !== null; });
+    }
+    function mean(a, f) {
+      return a.length ? a.reduce(function (s, r) { return s + f(r); }, 0) / a.length : null;
+    }
+    function sd(a, f) {
+      if (a.length < 2) return null;
+      var m = mean(a, f);
+      return Math.sqrt(a.reduce(function (s, r) {
+        return s + Math.pow(f(r) - m, 2);
+      }, 0) / (a.length - 1));
+    }
+
+    var I = pick('ingroup'), O = pick('outgroup');
+    var rI = mean(I, function (r) { return r.rating; });
+    var rO = mean(O, function (r) { return r.rating; });
+    var tI = mean(I, function (r) { return r.rt_first_move_ms || 0; });
+    var tO = mean(O, function (r) { return r.rt_first_move_ms || 0; });
+    var sdO = sd(O, function (r) { return r.rating; });
+
+    Core.finish('sta.html', {
+      task_type: 'sta',
+      n_trials: responses.length,
+      rating_in: rI === null ? '' : +rI.toFixed(2),
+      rating_out: rO === null ? '' : +rO.toFixed(2),
+      TB_rating: (rI !== null && rO !== null) ? +(rI - rO).toFixed(2) : '',
+      RT_in: tI === null ? '' : Math.round(tI),
+      RT_out: tO === null ? '' : Math.round(tO),
+      TB_RT: (tI !== null && tO !== null) ? Math.round(tO - tI) : '',
+      CV_trust: (sdO !== null && rO) ? +(sdO / rO).toFixed(4) : '',
+      IES_trust: (rO && tO) ? +(tO / Math.max(1, rO)).toFixed(3) : '',
+      n_timeout: responses.filter(function (r) { return r.timeout; }).length,
+      duration_ms: log.since(),
+      trials_json: JSON.stringify(responses)
+    });
+  }
+})();
+</script>
+</body>
+</html>

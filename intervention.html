@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>استراحت کوتاه</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap"><div id="app"></div></div>
+
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════
+   صفحه مداخله / کنترل
+
+   • هیچ توضیح علمی یا محتوایی پیش از ویدیو داده نمی‌شود.
+   • تنها یک جمله کوتاه و محبت‌آمیز، یکسان برای هر دو گروه.
+   • تخصیص گروه در همان ابتدای جلسه و با احتمال دقیقاً ۵۰٪
+     انجام شده و در core.js ذخیره شده است.
+   • دکمه ادامه تا وقتی ویدیو واقعاً تا انتها تماشا نشود فعال نمی‌شود:
+     نه با تایمر، بلکه با سنجش زمان واقعیِ پخش‌شده.
+   • جلو بردن ویدیو مسدود است؛ اگر کاربر بپرد، به جای قبلی برمی‌گردد.
+   ══════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  var b = Core.boot();
+  if (!b) return;
+
+  var S = Core.session();
+  var app = Core.$('#app');
+  var src = S.group === 1 ? CFG.VIDEO_A : CFG.VIDEO_B;
+  var alt = S.group === 1 ? CFG.VIDEO_A_ALT : CFG.VIDEO_B_ALT;
+  var usedAlt = 0;
+
+  var log = new Core.Logger('intervention');
+  var watched = 0;          // ثانیه‌های واقعاً پخش‌شده
+  var lastT = 0;
+  var maxT = 0;
+  var seekBlocks = 0;
+  var pauses = 0;
+  var duration = 0;
+  var ended = false;
+
+  render();
+
+  function render() {
+    app.innerHTML = '';
+    var w = Core.el('div');
+
+    var msg = Core.el('p', 'lead');
+    msg.style.marginTop = '26px';
+    msg.textContent = 'کمی خسته شده‌اید. برای رفع خستگی و ادامه کار، ' +
+      'ویدیوی کوتاهی که در ادامه پخش می‌شود را نگاه کنید.';
+    w.appendChild(msg);
+
+    var shell = Core.el('div', 'video-shell');
+    var v = Core.el('video');
+    v.id = 'v';
+    v.src = src;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    v.setAttribute('controlslist', 'nodownload noplaybackrate');
+    v.setAttribute('disablepictureinpicture', '');
+    v.preload = 'auto';
+    v.controls = false;
+    shell.appendChild(v);
+    var guard = Core.el('div', 'video-guard');
+    shell.appendChild(guard);
+    w.appendChild(shell);
+
+    var status = Core.el('div', 'video-status');
+    status.innerHTML = '<div class="track" style="flex:1"><div class="fill" id="vf"></div></div>' +
+      '<span id="vs" style="min-width:64px;text-align:left"></span>';
+    w.appendChild(status);
+
+    var play = Core.el('button', 'btn', 'پخش ویدیو');
+    play.type = 'button';
+    play.id = 'play';
+    w.appendChild(play);
+
+    var go = Core.el('button', 'btn ghost', 'ادامه');
+    go.type = 'button';
+    go.id = 'go';
+    go.disabled = true;
+    go.style.display = 'none';
+    var f = Core.el('div', 'footbar'), i = Core.el('div', 'inner');
+    i.appendChild(go); f.appendChild(i); w.appendChild(f);
+
+    var errBox = Core.el('div');
+    errBox.id = 'err';
+    w.appendChild(errBox);
+
+    app.appendChild(w);
+    wire(v, play, go, errBox);
+  }
+
+  function wire(v, play, go, errBox) {
+    var vf = Core.$('#vf'), vs = Core.$('#vs');
+
+    play.addEventListener('click', function () {
+      v.play().then(function () {
+        play.style.display = 'none';
+        log.mark('play');
+      }).catch(function (e) {
+        play.textContent = 'دوباره بزنید';
+        log.mark('play_fail', String(e));
+      });
+    });
+
+    // کلیک روی خود ویدیو هم پخش/مکث کند، ولی امکان پرش ندهد
+    Core.$('.video-guard').addEventListener('click', function () {
+      if (v.paused) { v.play(); play.style.display = 'none'; }
+      else { v.pause(); pauses++; log.mark('pause', v.currentTime); }
+    });
+
+    v.addEventListener('loadedmetadata', function () {
+      duration = v.duration || 0;
+      log.mark('meta', { dur: duration });
+    });
+
+    v.addEventListener('timeupdate', function () {
+      var t = v.currentTime;
+      // جلو پریدن مسدود است
+      if (t > maxT + 0.6) {
+        seekBlocks++;
+        v.currentTime = maxT;
+        Core.toast('برای ادامه، لازم است ویدیو کامل دیده شود');
+        log.mark('seek_blocked', t);
+        return;
+      }
+      if (t > lastT) watched += Math.min(t - lastT, 0.6);
+      lastT = t;
+      if (t > maxT) maxT = t;
+
+      if (duration > 0) {
+        var pct = Math.min(100, watched / duration * 100);
+        vf.style.width = pct + '%';
+        var rem = Math.max(0, Math.ceil(duration - t));
+        vs.textContent = Core.fa(rem) + ' ثانیه';
+      }
+    });
+
+    v.addEventListener('seeking', function () {
+      if (v.currentTime > maxT + 0.6) v.currentTime = maxT;
+    });
+
+    v.addEventListener('ended', function () {
+      ended = true;
+      log.mark('ended', { watched: watched, dur: duration });
+      unlock(go, v);
+    });
+
+    v.addEventListener('error', function () {
+      log.mark('error', v.error ? v.error.code : 'unknown');
+      if (alt && !usedAlt) {
+        usedAlt = 1;
+        src = alt;
+        log.mark('switch_alt');
+        render();
+        return;
+      }
+      errBox.innerHTML = '<div class="err"><strong>ویدیو باز نشد.</strong><br>' +
+        'اینترنت خود را بررسی کنید و صفحه را دوباره باز کنید. ' +
+        'اگر باز هم نشد، دکمه زیر را بزنید تا بتوانید ادامه دهید.</div>';
+      var skip = Core.el('button', 'btn ghost small', 'ویدیو باز نمی‌شود، ادامه می‌دهم');
+      skip.type = 'button';
+      skip.addEventListener('click', function () {
+        log.mark('skipped_error');
+        save(0);
+      });
+      errBox.appendChild(skip);
+    });
+
+    // اگر کاربر صفحه را عوض کند، ویدیو مکث می‌شود تا زمان تماشا واقعی بماند
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden' && !v.paused) {
+        v.pause(); pauses++; log.mark('hidden_pause', v.currentTime);
+      }
+    });
+  }
+
+  function unlock(go, v) {
+    var ratio = duration > 0 ? watched / duration : 0;
+    if (ratio < CFG.VIDEO_MIN_WATCH && !ended) return;
+    go.style.display = '';
+    go.disabled = false;
+    go.classList.remove('ghost');
+    go.textContent = 'ادامه';
+    go.addEventListener('click', function () {
+      go.disabled = true;
+      go.textContent = 'در حال ذخیره…';
+      save(1);
+    }, { once: true });
+  }
+
+  function save(complete) {
+    Core.finish('intervention.html', {
+      task_type: 'intervention',
+      video_group: Core.session().group,      // ۱ = ویدیوی A ، ۰ = ویدیوی B
+      video_src: src,
+      used_alt_url: usedAlt,
+      video_duration_s: +duration.toFixed(2),
+      watched_s: +watched.toFixed(2),
+      watched_ratio: duration > 0 ? +(watched / duration).toFixed(4) : 0,
+      completed: complete,
+      n_pauses: pauses,
+      n_seek_blocked: seekBlocks,
+      duration_ms: log.since(),
+      events_json: JSON.stringify(log.events)
+    });
+  }
+})();
+</script>
+</body>
+</html>

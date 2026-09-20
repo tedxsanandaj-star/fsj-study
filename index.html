@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="مشارکت در ساخت یک مرجع ایرانی برای قضاوت انسانی">
+<meta name="robots" content="noindex">
+<title>مرجع ایرانی قضاوت انسانی</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="wrap" id="app">
+
+  <h1>یک مرجع ایرانی از قضاوت انسانی</h1>
+
+  <p class="lead">
+    امروز مدل‌های هوش مصنوعی روی داده‌هایی آموزش می‌بینند که تقریباً هیچ‌کدام
+    ایرانی نیستند. نتیجه این است که قضاوت آن‌ها با نگاه ما جور درنمی‌آید.
+    این مطالعه می‌خواهد یک مرجع پایه بسازد که در آن، داوری خود مردم ایران
+    ثبت شده باشد.
+  </p>
+
+  <div class="card">
+    <h2>چه کاری انجام می‌دهید؟</h2>
+    <ul class="plain">
+      <li>چند سؤال کوتاه درباره خودتان و علاقه‌هایتان</li>
+      <li>یک بررسی ساده دید و تشخیص رنگ</li>
+      <li>چند موقعیت روزمره و اینکه شما چه می‌کنید</li>
+      <li>دو بازی کوتاه: شباهت چهره‌ها، و تقسیم سرمایه</li>
+      <li>یک ویدیوی دو دقیقه‌ای برای استراحت، وسط کار</li>
+    </ul>
+    <p class="small" style="margin-top:14px">
+      همه‌چیز روی گوشی انجام می‌شود. حدود ۳۰ تا ۳۵ دقیقه وقت می‌برد.
+      اگر وسط کار قطع شد، از همان‌جا ادامه می‌دهید.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>چه چیزی نصیب شما می‌شود؟</h2>
+    <ul class="plain">
+      <li>به قید قرعه، به تعداد زیادی از کسانی که همه سؤال‌ها را کامل و
+          با دقت پاسخ داده‌اند، جوایز نفیسی داده می‌شود.</li>
+      <li>هر کس شماره موبایلش را وارد کند، شرح کامل بررسی عملکردش برایش
+          فرستاده می‌شود.</li>
+      <li>تعدادی از برگزیدگان برای شرکت در تجربه رایگان تصویربرداری مغزی
+          دعوت خواهند شد.</li>
+    </ul>
+    <p class="small" style="margin-top:14px">
+      شماره موبایل اختیاری است و در انتهای کار از شما پرسیده می‌شود.
+      شماره‌ها جدا از پاسخ‌ها نگهداری می‌شوند و در هیچ تحلیلی استفاده نمی‌شوند.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>درباره اطلاعات شما</h2>
+    <ul class="plain">
+      <li>نام و نام خانوادگی از شما پرسیده نمی‌شود.</li>
+      <li>پاسخ‌ها با یک کد بی‌نام ذخیره می‌شوند.</li>
+      <li>نتایج فقط به صورت آمار کلی گزارش می‌شود، نه فرد به فرد.</li>
+      <li>شرکت کاملاً داوطلبانه است. هر لحظه می‌توانید صفحه را ببندید.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>برای شروع، این موارد را تأیید کنید</h2>
+    <div class="opts" id="consent"></div>
+  </div>
+
+  <div class="card tight">
+    <p class="small" style="margin:0 0 6px">کد اختصاصی شما در این مطالعه:</p>
+    <div class="code-box" id="pid">…</div>
+    <p class="small" style="margin:0">
+      اگر وسط کار قطع شد، با همین گوشی و همین مرورگر برگردید تا ادامه پیدا کند.
+    </p>
+  </div>
+
+  <div id="cfg-warn"></div>
+
+</div>
+
+<div class="footbar">
+  <div class="inner">
+    <button class="btn" id="go" type="button" disabled>شروع می‌کنم</button>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var CONSENTS = [
+    'سن من بین ۱۲ تا ۵۰ سال است.',
+    'دید من طبیعی است یا با عینک/لنز اصلاح شده است.',
+    'می‌دانم شرکت داوطلبانه است و هر زمان می‌توانم قطع کنم.',
+    'موافقم پاسخ‌های بی‌نام من برای این پژوهش استفاده شود.'
+  ];
+  var MINOR_NOTE = 'اگر زیر ۱۸ سال دارم، پدر/مادر یا سرپرستم از شرکت من در این ' +
+                   'مطالعه باخبر است و مخالفتی ندارد.';
+
+  var box = Core.$('#consent');
+  var state = [];
+
+  CONSENTS.concat([MINOR_NOTE]).forEach(function (txt, i) {
+    var b = Core.el('button', 'opt');
+    b.type = 'button';
+    b.setAttribute('aria-pressed', 'false');
+    var k = Core.el('span', 'opt-key', '✓');
+    var body = Core.el('span', 'opt-body', txt);
+    b.appendChild(k); b.appendChild(body);
+    state[i] = false;
+    b.addEventListener('click', function () {
+      state[i] = !state[i];
+      b.setAttribute('aria-pressed', state[i] ? 'true' : 'false');
+      Core.$('#go').disabled = state.some(function (x) { return !x; });
+    });
+    box.appendChild(b);
+  });
+
+  var boot = Core.boot({ guard: false, bar: false });
+  Core.$('#pid').textContent = boot.session.pid;
+
+  // اگر تنظیمات ناقص باشد، به جای خطای خاموش، هشدار روشن می‌دهیم
+  var problems = [];
+  if (!CFG.API_URL || CFG.API_URL.indexOf('PASTE') === 0) problems.push('API_URL');
+  if (CFG.FACES_BASE.indexOf('YOUR_USERNAME') !== -1) problems.push('FACES_BASE');
+  if (CFG.VIDEO_A.indexOf('PASTE') === 0 || CFG.VIDEO_B.indexOf('PASTE') === 0) problems.push('VIDEO_A / VIDEO_B');
+  if (problems.length && !CFG.DEBUG) {
+    Core.$('#cfg-warn').innerHTML =
+      '<div class="err"><strong>تنظیمات ناقص است.</strong><br>' +
+      'این مقادیر در <code>config.js</code> هنوز پر نشده‌اند: ' +
+      problems.join('، ') +
+      '<br>این پیام را فقط شما (مدیر مطالعه) می‌بینید؛ تا رفع آن داده ذخیره نمی‌شود.</div>';
+  }
+
+  Core.$('#go').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'در حال آماده‌سازی…';
+    Core.finish('index.html', {
+      task_type: 'session_start',
+      consent_all: 1,
+      ua: boot.session.ua,
+      screen_w: boot.session.screen_w,
+      screen_h: boot.session.screen_h,
+      dpr: boot.session.dpr,
+      touch: boot.session.touch ? 1 : 0,
+      tz: boot.session.tz,
+      lang: boot.session.lang,
+      started_at: boot.session.started_at
+    });
+  });
+})();
+</script>
+</body>
+</html>

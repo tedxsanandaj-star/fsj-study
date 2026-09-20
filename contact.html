@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>آشنایی‌ها و سرگرمی</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>آدم‌هایی که می‌بینید</h1>
+  <p class="lead">
+    در یک ماه معمولی، چقدر با هر گروه زیر رفت‌وآمد یا گفت‌وگو دارید؟
+    منظور، گفت‌وگوی واقعی است، نه فقط رد شدن از کنار هم.
+  </p>
+  <div class="note">هر گروه یک خط دارد. اول «چقدر» را بزنید. اگر بیشتر از «هرگز» باشد، یک سؤال دوم هم باز می‌شود.</div>
+  <div class="card" id="groups"></div>
+
+  <h2>سرگرمی‌ها</h2>
+  <p class="lead">کدام‌ها را در چند ماه گذشته دیده‌اید یا انجام داده‌اید؟ هر تعداد که می‌خواهید بزنید.</p>
+  <div class="card" id="media"></div>
+</div>
+
+<div class="footbar"><div class="inner">
+  <button class="btn" id="go" type="button" disabled>ادامه</button>
+</div></div>
+
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="items_misc.js"></script>
+<script>
+(function(){
+  'use strict';
+  var b = Core.boot();
+  if (!b) return;
+
+  var C = ITEMS.CONTACT;
+  var log = new Core.Logger('contact');
+  var freq = {}, qual = {}, media = {};
+
+  /* ───────── تماس با گروه‌ها ───────── */
+  var host = Core.$('#groups');
+
+  C.groups.forEach(function (grp) {
+    var row = Core.el('div', 'contact-row');
+    row.appendChild(Core.el('div', 'contact-name', grp.label));
+
+    var fChips = Core.el('div', 'chips');
+    var qBox = Core.el('div');
+    qBox.style.display = 'none';
+    qBox.appendChild(Core.el('div', 'sub-label', 'این رفت‌وآمدها معمولاً چطور بوده؟'));
+    var qChips = Core.el('div', 'chips');
+    qBox.appendChild(qChips);
+
+    C.freq.forEach(function (f) {
+      var c = Core.el('button', 'chip', f.label);
+      c.type = 'button';
+      c.setAttribute('aria-pressed', 'false');
+      c.addEventListener('click', function () {
+        [].forEach.call(fChips.children, function (x) { x.setAttribute('aria-pressed', 'false'); });
+        c.setAttribute('aria-pressed', 'true');
+        freq[grp.code] = f.v;
+        log.mark('freq', { g: grp.code, v: f.v });
+        if (f.v === 0) {
+          qBox.style.display = 'none';
+          delete qual[grp.code];
+        } else {
+          qBox.style.display = '';
+        }
+        check();
+      });
+      fChips.appendChild(c);
+    });
+
+    C.qual.forEach(function (q) {
+      var c = Core.el('button', 'chip', q.label);
+      c.type = 'button';
+      c.setAttribute('aria-pressed', 'false');
+      c.addEventListener('click', function () {
+        [].forEach.call(qChips.children, function (x) { x.setAttribute('aria-pressed', 'false'); });
+        c.setAttribute('aria-pressed', 'true');
+        qual[grp.code] = q.v;
+        log.mark('qual', { g: grp.code, v: q.v });
+        check();
+      });
+      qChips.appendChild(c);
+    });
+
+    row.appendChild(fChips);
+    row.appendChild(qBox);
+    host.appendChild(row);
+  });
+
+  /* ───────── تنوع رسانه ───────── */
+  var mHost = Core.$('#media');
+  var mOpts = Core.el('div', 'opts');
+  ITEMS.MEDIA.forEach(function (m) {
+    var btn = Core.el('button', 'opt');
+    btn.type = 'button';
+    btn.setAttribute('aria-pressed', 'false');
+    btn.appendChild(Core.el('span', 'opt-key', '✓'));
+    btn.appendChild(Core.el('span', 'opt-body', m.label));
+    btn.addEventListener('click', function () {
+      media[m.id] = !media[m.id];
+      btn.setAttribute('aria-pressed', media[m.id] ? 'true' : 'false');
+      log.mark('media', { id: m.id, v: media[m.id] ? 1 : 0 });
+    });
+    mOpts.appendChild(btn);
+  });
+  var none = Core.el('button', 'opt');
+  none.type = 'button';
+  none.setAttribute('aria-pressed', 'false');
+  none.appendChild(Core.el('span', 'opt-key', '–'));
+  none.appendChild(Core.el('span', 'opt-body', 'هیچ‌کدام'));
+  none.addEventListener('click', function () {
+    var on = none.getAttribute('aria-pressed') === 'true';
+    none.setAttribute('aria-pressed', on ? 'false' : 'true');
+    if (!on) {
+      [].forEach.call(mOpts.children, function (x) { x.setAttribute('aria-pressed', 'false'); });
+      media = {};
+    }
+  });
+  mHost.appendChild(mOpts);
+  mHost.appendChild(none);
+
+  /* ───────── اعتبارسنجی و ارسال ───────── */
+  function missing() {
+    var m = [];
+    C.groups.forEach(function (g) {
+      if (freq[g.code] === undefined) m.push(g.code + '_freq');
+      else if (freq[g.code] > 0 && qual[g.code] === undefined) m.push(g.code + '_qual');
+    });
+    return m;
+  }
+  function check() { Core.$('#go').disabled = missing().length > 0; }
+
+  /**
+   * آنتروپی تجربه زیسته، تعدیل‌شده با کیفیت تماس (بند الف-۳.۳ پیوست).
+   *   q'_g = (q_g - 1)/4 + 0.2            → بازه [0.2, 1.2]
+   *   p'_g = p_g·q'_g / Σ p_h·q'_h
+   *   H    = -Σ p'_g · ln(p'_g + 1e-6)
+   * خروجی هم به صورت خام و هم نرمال‌شده بر ln(9) گزارش می‌شود.
+   */
+  function computeH() {
+    var codes = C.groups.map(function (g) { return g.code; });
+    var raw = codes.map(function (c) { return freq[c] || 0; });
+    var sum = raw.reduce(function (a, x) { return a + x; }, 0);
+
+    if (sum === 0) return { H_raw: 0, H_adj: 0, H_norm: 0, p: raw, p_adj: raw };
+
+    var p = raw.map(function (x) { return x / sum; });
+    var H_raw = -p.reduce(function (a, x) { return a + x * Math.log(x + 1e-6); }, 0);
+
+    var w = codes.map(function (c, i) {
+      var q = qual[c] || 3;
+      var qa = (q - 1) / 4 + 0.2;
+      return p[i] * qa;
+    });
+    var wsum = w.reduce(function (a, x) { return a + x; }, 0) || 1;
+    var pa = w.map(function (x) { return x / wsum; });
+    var H_adj = -pa.reduce(function (a, x) { return a + x * Math.log(x + 1e-6); }, 0);
+
+    return {
+      H_raw: +H_raw.toFixed(5),
+      H_adj: +H_adj.toFixed(5),
+      H_norm: +(H_adj / Math.log(9)).toFixed(5),
+      p: p.map(function (x) { return +x.toFixed(4); }),
+      p_adj: pa.map(function (x) { return +x.toFixed(4); })
+    };
+  }
+
+  Core.$('#go').addEventListener('click', function () {
+    var m = missing();
+    if (m.length) { Core.toast('هنوز ' + Core.fa(m.length) + ' مورد بی‌پاسخ مانده'); return; }
+    this.disabled = true;
+    this.textContent = 'در حال ذخیره…';
+
+    var H = computeH();
+    var out = {
+      task_type: 'contact',
+      HEXP_raw: H.H_raw,
+      HEXP_adj: H.H_adj,
+      HEXP_norm: H.H_norm,
+      media_count: Object.keys(media).filter(function (k) { return media[k]; }).length,
+      p_json: JSON.stringify(H.p),
+      p_adj_json: JSON.stringify(H.p_adj),
+      duration_ms: log.since(),
+      events_json: JSON.stringify(log.events)
+    };
+    C.groups.forEach(function (g) {
+      out['CT_' + g.code + '_freq'] = freq[g.code];
+      out['CT_' + g.code + '_qual'] = qual[g.code] === undefined ? '' : qual[g.code];
+    });
+    ITEMS.MEDIA.forEach(function (mm) { out[mm.id] = media[mm.id] ? 1 : 0; });
+
+    Core.finish('contact.html', out);
+  });
+
+  check();
+})();
+</script>
+</body>
+</html>

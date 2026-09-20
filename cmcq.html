@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>موقعیت‌های روزمره</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="intro">
+    <h1>موقعیت‌های روزمره</h1>
+    <p class="lead">
+      حالا چند موقعیت را می‌خوانید که ممکن است برای هر کسی پیش بیاید.
+      برای هر کدام، گزینه‌ای را بزنید که به کار خودتان نزدیک‌تر است.
+    </p>
+    <div class="note">
+      جواب درست و غلط وجود ندارد. هر چه صادقانه‌تر باشید، نتیجه کار ما دقیق‌تر می‌شود.
+      وقت کافی دارید؛ عجله نکنید.
+    </div>
+  </div>
+  <div id="app"></div>
+</div>
+
+<div class="footbar" id="foot" style="display:none"><div class="inner">
+  <button class="btn" id="go" type="button">شروع می‌کنم</button>
+</div></div>
+
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="items_cmcq.js"></script>
+<script>
+(function(){
+  'use strict';
+  var b = Core.boot();
+  if (!b) return;
+
+  var order = CMCQ.buildOrder();
+  var idx = 0;
+  var answers = {};      // sid -> 'A'|'B'|'C'|'D'
+  var perItem = [];      // جزئیات هر گویه: زمان، جایگاه نمایش، تغییر پاسخ
+  var log = new Core.Logger('cmcq');
+  var app = Core.$('#app');
+  var foot = Core.$('#foot');
+  var KEYS = ['الف', 'ب', 'ج', 'د'];
+
+  foot.style.display = '';
+  Core.$('#go').addEventListener('click', function () {
+    var intro = Core.$('#intro');
+    if (!intro) return;                 // در برابر کلیک دوباره
+    this.disabled = true;
+    intro.remove();
+    foot.style.display = 'none';
+    show();
+  }, { once: true });
+
+  function show() {
+    var item = order[idx];
+    var t0 = Core.now();
+    var picks = [];          // همه کلیک‌ها، حتی تغییر نظر
+
+    app.innerHTML = '';
+    Core.setBarCount('موقعیت ' + Core.fa(idx + 1) + ' از ' + Core.fa(order.length));
+    Core.setBarFill(30 + (idx / order.length) * 20);
+
+    var card = Core.el('div', 'card');
+    card.appendChild(Core.el('div', 'q-text', item.q));
+
+    // ترتیب نمایش گزینه‌ها تصادفی است؛ کلید اصلی (A..D) جدا نگه داشته می‌شود
+    var letters = ['A', 'B', 'C', 'D'];
+    var shown = item.check ? letters : Core.shuffle(letters);
+
+    var opts = Core.el('div', 'opts');
+    var chosen = null;
+    shown.forEach(function (L, pos) {
+      var btn = Core.el('button', 'opt');
+      btn.type = 'button';
+      btn.setAttribute('aria-pressed', 'false');
+      btn.appendChild(Core.el('span', 'opt-key', KEYS[pos]));
+      btn.appendChild(Core.el('span', 'opt-body', item.o[L]));
+      btn.addEventListener('click', function () {
+        [].forEach.call(opts.children, function (c) { c.setAttribute('aria-pressed', 'false'); });
+        btn.setAttribute('aria-pressed', 'true');
+        chosen = L;
+        picks.push({ letter: L, pos: pos + 1, t: Core.now() - t0 });
+        Core.$('#next').disabled = false;
+      });
+      opts.appendChild(btn);
+    });
+    card.appendChild(opts);
+    app.appendChild(card);
+
+    var nb = Core.el('button', 'btn', idx === order.length - 1 ? 'پایان این بخش' : 'بعدی');
+    nb.type = 'button';
+    nb.id = 'next';
+    nb.disabled = true;
+    var f = Core.el('div', 'footbar');
+    var inner = Core.el('div', 'inner');
+    inner.appendChild(nb);
+    f.appendChild(inner);
+    app.appendChild(f);
+
+    nb.addEventListener('click', function () {
+      answers[item.id] = chosen;
+      perItem.push({
+        id: item.id,
+        answer: chosen,
+        shown_order: shown.join(''),
+        position: shown.indexOf(chosen) + 1,
+        rt_ms: picks.length ? picks[picks.length - 1].t : null,
+        first_click_ms: picks.length ? picks[0].t : null,
+        n_changes: Math.max(0, picks.length - 1),
+        screen_index: idx + 1,
+        is_check: item.check ? 1 : 0,
+        check_correct: item.check ? (chosen === item.check ? 1 : 0) : ''
+      });
+      log.mark('answer', { id: item.id, v: chosen, rt: picks.length ? picks[picks.length - 1].t : null });
+      idx++;
+      window.scrollTo(0, 0);
+      if (idx < order.length) show();
+      else done();
+    });
+
+    window.scrollTo(0, 0);
+  }
+
+  function done() {
+    app.innerHTML = '<div class="center-screen"><div class="spinner"></div>' +
+      '<p class="small">در حال ذخیره…</p></div>';
+
+    // نمره خام پنج سازه از ماتریس وزن‌دهی
+    var scen = {};
+    Object.keys(answers).forEach(function (k) {
+      if (k.indexOf('AC') !== 0) scen[k] = answers[k];
+    });
+    var raw = CMCQ.score(scen);
+
+    // پرچم‌های کیفیت
+    var checks = perItem.filter(function (x) { return x.is_check; });
+    var nWrong = checks.filter(function (x) { return x.check_correct === 0; }).length;
+    var letters = perItem.filter(function (x) { return !x.is_check; })
+      .map(function (x) { return x.answer; });
+    var counts = {};
+    letters.forEach(function (L) { counts[L] = (counts[L] || 0) + 1; });
+    var maxSame = Math.max.apply(null, Object.keys(counts).map(function (k) { return counts[k]; }));
+    var rts = perItem.map(function (x) { return x.rt_ms || 0; }).sort(function (a, b) { return a - b; });
+    var medRT = rts.length ? rts[Math.floor(rts.length / 2)] : 0;
+
+    var out = {
+      task_type: 'cmcq',
+      CINH_raw: raw.CINH, CFLEX_raw: raw.CFLEX, BCOMP_raw: raw.BCOMP,
+      BFAIR_raw: raw.BFAIR, HEXP_w_raw: raw.HEXP,
+      Att_Flag: nWrong === 2 ? 1 : 0,
+      Semi_Att_Flag: nWrong === 1 ? 1 : 0,
+      n_check_wrong: nWrong,
+      Straightline_Flag: (maxSame / Math.max(1, letters.length)) > 0.9 ? 1 : 0,
+      max_same_pct: +(maxSame / Math.max(1, letters.length)).toFixed(3),
+      median_rt_ms: medRT,
+      duration_ms: log.since(),
+      items_json: JSON.stringify(perItem),
+      answers_json: JSON.stringify(answers)
+    };
+    // پاسخ هر سناریو در ستون جداگانه هم ذخیره می‌شود
+    Object.keys(answers).forEach(function (k) { out['CM_' + k] = answers[k]; });
+
+    Core.finish('cmcq.html', out);
+  }
+})();
+</script>
+</body>
+</html>

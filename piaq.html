@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>حس شما در این لحظه</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>حس شما در این لحظه</h1>
+  <p class="lead">درباره چیزی که همین الان دیدید، چقدر با هر جمله موافقید؟</p>
+  <div class="note">۱ یعنی کاملاً مخالف و ۷ یعنی کاملاً موافق. هر عددی که به حس شما نزدیک‌تر است را بزنید.</div>
+  <div id="form"></div>
+</div>
+
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="items_misc.js"></script>
+<script>
+(function(){
+  'use strict';
+  var b = Core.boot();
+  if (!b) return;
+
+  /* ترتیب گویه‌ها تصادفی می‌شود، ولی گویه «حال عمومی» که مقیاس
+     متفاوتی دارد همیشه در انتها می‌ماند. */
+  var items = ITEMS.PIAQ.slice();
+  var mood = items.pop();
+  var order = Core.shuffle(items).concat([mood]);
+
+  Core.renderForm(Core.$('#form'), order, {
+    section: 'piaq',
+    number: false,
+    onDone: function (a) {
+      var core4 = ['PIAQ_EMP','PIAQ_AWE','PIAQ_HUM','PIAQ_DIST'];
+      var total = core4.reduce(function (s,k) { return s + a[k]; }, 0) / 4;
+      var out = {
+        task_type: 'piaq',
+        PIAQ_Total: +total.toFixed(3),
+        E_pulse: +(total * 120).toFixed(1),
+        item_order: order.map(function (x) { return x.id; }).join('|'),
+        duration_ms: a._duration_ms,
+        events_json: JSON.stringify(a._events)
+      };
+      Object.keys(a).forEach(function (k) {
+        if (k.indexOf('PIAQ_') === 0) out[k] = a[k];
+      });
+      Core.finish('piaq.html', out);
+    }
+  });
+})();
+</script>
+</body>
+</html>
