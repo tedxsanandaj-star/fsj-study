@@ -10,7 +10,7 @@
 <body>
 <div class="wrap">
   <h1>حس شما در این لحظه</h1>
-  <p class="lead">درباره چیزی که همین الان دیدید، چقدر با هر جمله موافقید؟</p>
+  <p class="lead">همین الان، با هر یک از این جمله‌ها چقدر موافقید؟</p>
   <div class="note">۱ یعنی کاملاً مخالف و ۷ یعنی کاملاً موافق. هر عددی که به حس شما نزدیک‌تر است را بزنید.</div>
   <div id="form"></div>
 </div>
@@ -24,11 +24,15 @@
   var b = Core.boot();
   if (!b) return;
 
-  /* ترتیب گویه‌ها تصادفی می‌شود، ولی گویه «حال عمومی» که مقیاس
-     متفاوتی دارد همیشه در انتها می‌ماند. */
-  var items = ITEMS.PIAQ.slice();
-  var mood = items.pop();
-  var order = Core.shuffle(items).concat([mood]);
+  /* ترتیب نمایش:
+       ۱) هفت گویه حالت (PIAQ_STATE) — با هم تصادفی می‌شوند.
+       ۲) دو گویه بررسی فنی/توجه (PIAQ_CHECK) — ثابت، بعد از حالت‌ها؛
+          عمداً دیرتر می‌آیند تا پاسخ به گویه‌های حالت، پیش از یادآوری
+          «این بخش» به ذهن شرکت‌کننده، ثبت شده باشد.
+       ۳) گویه «حال عمومی» (PIAQ_MOOD_ITEM) — همیشه آخر، مقیاس متفاوت.  */
+  var order = Core.shuffle(ITEMS.PIAQ_STATE)
+    .concat(ITEMS.PIAQ_CHECK)
+    .concat([ITEMS.PIAQ_MOOD_ITEM]);
 
   Core.renderForm(Core.$('#form'), order, {
     section: 'piaq',
