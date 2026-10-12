@@ -10,7 +10,7 @@ window.CFG = {
   /* ═══════════ بخش ۱ — پنج مقدار اجباری ═══════════ */
 
   /* ۱. آدرس Web App در Google Apps Script؛ باید با /exec تمام شود. */
-  API_URL: 'AKfycbyrsjYGqLbxrdC06nsad8z_v-qK62snl37F-cSx6t00V9jVawYivfoTCmgtwiWmo7NLLA',
+  API_URL: 'https://script.google.com/macros/s/AKfycbyrsjYGqLbxrdC06nsad8z_v-qK62snl37F-cSx6t00V9jVawYivfoTCmgtwiWmo7NLLA/exec',
 
   /* ۲. محل تصاویر چهره (داخل همین مخزن) — تغییر ندهید. */
   FACES_BASE: 'faces/',
