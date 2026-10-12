@@ -10,7 +10,7 @@ window.CFG = {
   /* ═══════════ بخش ۱ — پنج مقدار اجباری ═══════════ */
 
   /* ۱. آدرس Web App در Google Apps Script؛ باید با /exec تمام شود. */
-  API_URL: 'PASTE_YOUR_APPS_SCRIPT_URL_HERE',
+  API_URL: 'AKfycbyrsjYGqLbxrdC06nsad8z_v-qK62snl37F-cSx6t00V9jVawYivfoTCmgtwiWmo7NLLA',
 
   /* ۲. محل تصاویر چهره (داخل همین مخزن) — تغییر ندهید. */
   FACES_BASE: 'faces/',
@@ -23,10 +23,10 @@ window.CFG = {
   VIDEO_B_ALT: '',
 
   /* ۴. آدرس عمومی مطالعه، مثلاً 'https://myname.github.io/fsj-study/' */
-  SITE_BASE: 'https://YOUR_USERNAME.github.io/fsj-study/',
+  SITE_BASE: 'https://tedxsanandaj-star.github.io/fsj-study/',
 
   /* ۵. ایمیل تماس برای شرکت‌کنندگان */
-  CONTACT_EMAIL: 'your.email@example.com',
+  CONTACT_EMAIL: 'tedxsanandaj@gmail.com',
 
 
   /* ═══════════ بخش ۲ — فقط در صورت نیاز ═══════════ */
@@ -42,13 +42,6 @@ window.CFG = {
   ALLOCATION: 'server',
   ALLOCATION_TIMEOUT_MS: 8000,
 
-  /* خطوط حمایتی نمایش‌داده‌شده در صفحهٔ پایان — پیش از انتشار با کمیتهٔ اخلاق تأیید شود.
-     (۱۲۳ و ۱۴۸۰: سازمان بهزیستی؛ ۴۰۳۰: وزارت بهداشت.) برای حذف: آرایه را خالی بگذارید. */
-  SUPPORT_LINES: [
-    { number: '123',  label: 'اورژانس اجتماعی بهزیستی (شبانه‌روزی، رایگان)' },
-    { number: '1480', label: 'مشاوره تلفنی بهزیستی (رایگان)' },
-    { number: '4030', label: 'مشاورهٔ تلفنی سلامت، وزارت بهداشت (رایگان)' }
-  ],
   DEBRIEF_TEXT: '',            // خالی = متن پیش‌فرض صفحهٔ پایان
 
   /* مهلت پاسخ (میلی‌ثانیه). صفر = بدون مهلت. عمداً سخاوتمندانه است. */
