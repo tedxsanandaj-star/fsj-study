@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>حال این روزهای شما</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>حال این روزهای شما</h1>
+  <p class="lead">به دو هفته گذشته فکر کنید و نزدیک‌ترین گزینه را انتخاب کنید.</p>
+  <div id="form"></div>
+</div>
+
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="items_misc.js"></script>
+<script>
+(function(){
+  'use strict';
+  var b = Core.boot();
+  if (!b) return;
+
+  Core.renderForm(Core.$('#form'), ITEMS.WELLBEING, {
+    section: 'wellbeing',
+    number: false,
+    onDone: function (ans) {
+      var anx = ans.M1 + ans.M3, dep = ans.M2 + ans.M4;
+      Core.finish('wellbeing.html', {
+        task_type: 'wellbeing',
+        M1: ans.M1, M2: ans.M2, M3: ans.M3, M4: ans.M4,
+        PHQ4_Anxiety_Raw: anx,
+        PHQ4_Depression_Raw: dep,
+        PHQ4_Total_Raw: anx + dep,
+        ANX_FLAG: anx >= 3 ? 1 : 0,
+        DEP_FLAG: dep >= 3 ? 1 : 0,
+        MH_FLAG: (anx >= 3 || dep >= 3) ? 1 : 0,
+        duration_ms: ans._duration_ms,
+        events_json: JSON.stringify(ans._events)
+      });
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>بررسی دید</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>بررسی دید</h1>
+  <p class="lead">
+    چون در ادامه باید تصویرها را با دقت ببینید، اول یک بررسی کوتاه انجام می‌دهیم.
+    گوشی را در فاصله معمول خودتان نگه دارید.
+  </p>
+  <div id="app"></div>
+</div>
+
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="items_misc.js"></script>
+<script>
+(function(){
+  'use strict';
+  var b = Core.boot();
+  if (!b) return;
+
+  var app = Core.$('#app');
+  var ans = {};
+  var log = new Core.Logger('vision');
+
+  /* ───── بخش ۱: خودگزارشی عینک ───── */
+  var s1 = Core.el('div');
+  app.appendChild(s1);
+  Core.renderForm(s1, ITEMS.VISION_SELF, {
+    section: 'vision_self',
+    number: false,
+    buttonText: 'ادامه',
+    onDone: function (a) {
+      ans.VA_Glasses = a.VA_Glasses;
+      ans.VA_On = a.VA_On;
+      log.mark('self_done', a);
+      Core.$('.footbar').remove();
+      s1.remove();
+      stepAcuity();
+    }
+  });
+
+  /* ───── بخش ۲: وضوح متن ───── */
+  var acuityDone = false;
+  function stepAcuity() {
+    var v = ITEMS.VA_SUBJ;
+    var wrap = Core.el('div');
+    var card = Core.el('div', 'card');
+    card.appendChild(Core.el('div', 'q-text', 'کدام خط‌ها را بدون زحمت می‌خوانید؟'));
+
+    v.rows.forEach(function (r, i) {
+      var line = Core.el('p');
+      line.style.fontSize = r.size + 'px';
+      line.style.lineHeight = '1.7';
+      line.style.margin = '0 0 10px';
+      line.textContent = r.text;
+      card.appendChild(line);
+    });
+    wrap.appendChild(card);
+
+    var qcard = Core.el('div', 'card');
+    var opts = Core.el('div', 'opts');
+    var keys = ['۱', '۲', '۳', '۴'];
+    v.options.forEach(function (o, i) {
+      var btn = Core.el('button', 'opt');
+      btn.type = 'button';
+      btn.setAttribute('aria-pressed', 'false');
+      btn.appendChild(Core.el('span', 'opt-key', keys[i]));
+      btn.appendChild(Core.el('span', 'opt-body', o.label));
+      btn.addEventListener('click', function () {
+        if (acuityDone) return;          // فقط یک بار
+        acuityDone = true;
+        [].forEach.call(opts.children, function (c) { c.setAttribute('aria-pressed', 'false'); });
+        btn.setAttribute('aria-pressed', 'true');
+        ans.VA_Subj = o.v;
+        log.mark('acuity', o.v);
+        setTimeout(function () { wrap.remove(); stepColor(); }, 260);
+      });
+      opts.appendChild(btn);
+    });
+    qcard.appendChild(opts);
+    wrap.appendChild(qcard);
+    app.appendChild(wrap);
+    window.scrollTo(0, 0);
+  }
+
+  /* ───── بخش ۳: تشخیص رنگ ───── */
+  function stepColor() {
+    var I = ITEMS.ISHIHARA;
+    var idx = 0;
+    ans.CV = [];
+    var wrap = Core.el('div');
+    app.appendChild(wrap);
+
+    // پیش‌بارگذاری تا صفحه‌ها بدون تأخیر ظاهر شوند
+    Core.preload(I.plates.map(function (p) { return 'ishihara/' + p + '.png'; }));
+
+    function show() {
+      var myIdx = idx;           // هر صفحه فقط پاسخ خودش را می‌پذیرد
+      wrap.innerHTML = '';
+      Core.setBarCount('تصویر ' + Core.fa(idx + 1) + ' از ' + Core.fa(I.plates.length));
+
+      var card = Core.el('div', 'card');
+      card.appendChild(Core.el('div', 'q-text', 'چه عددی در این تصویر می‌بینید؟'));
+
+      var img = Core.el('img', 'plate');
+      img.src = 'ishihara/' + I.plates[idx] + '.png';
+      img.alt = 'تصویر تشخیص رنگ';
+      img.decoding = 'async';
+      card.appendChild(img);
+
+      var grid = Core.el('div', 'num-grid');
+      var t0 = Core.now();
+      I.choices.forEach(function (c) {
+        var btn = Core.el('button', 'num-btn', Core.fa(c));
+        btn.type = 'button';
+        btn.addEventListener('click', function () { pick(myIdx, c, Core.now() - t0); });
+        grid.appendChild(btn);
+      });
+      var none = Core.el('button', 'num-btn wide', 'هیچ عددی نمی‌بینم');
+      none.type = 'button';
+      none.addEventListener('click', function () { pick(myIdx, 'none', Core.now() - t0); });
+      grid.appendChild(none);
+
+      card.appendChild(grid);
+      wrap.appendChild(card);
+      window.scrollTo(0, 0);
+    }
+
+    function pick(myIdx, val, rt) {
+      if (myIdx !== idx) return;   // کلیک دیرهنگام روی صفحه قبلی
+      ans.CV.push({
+        plate: I.plates[idx],
+        answer: val,
+        correct: val === I.correct[idx] ? 1 : 0,
+        rt_ms: rt
+      });
+      log.mark('plate', { i: idx, v: val, rt: rt });
+      idx++;
+      if (idx < I.plates.length) show();
+      else done();
+    }
+
+    show();
+  }
+
+  /* ───── جمع‌بندی و ذخیره ───── */
+  function done() {
+    var score = ans.CV.reduce(function (s, x) { return s + x.correct; }, 0);
+    var cvFlag = score < 5 ? 1 : 0;
+    var vaFlag = ([3, 4].indexOf(ans.VA_Subj) !== -1 && ans.VA_Glasses === 3) ? 1 : 0;
+
+    var out = {
+      task_type: 'vision',
+      VA_Glasses: ans.VA_Glasses,
+      VA_On: ans.VA_On,
+      VA_Subj: ans.VA_Subj,
+      CV_Score: score,
+      CV_Flag: cvFlag,
+      VA_Flag: vaFlag,
+      Vision_Flag: (cvFlag || vaFlag) ? 1 : 0,
+      duration_ms: log.since(),
+      trials_json: JSON.stringify(ans.CV),
+      events_json: JSON.stringify(log.events)
+    };
+    ans.CV.forEach(function (x, i) {
+      out['CV_' + (i + 1)] = x.answer;
+      out['CV_' + (i + 1) + '_rt'] = x.rt_ms;
+    });
+
+    app.innerHTML = '<div class="center-screen"><div class="spinner"></div>' +
+      '<p class="small">در حال ذخیره…</p></div>';
+    Core.finish('vision.html', out);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>آشنایی‌ها و سرگرمی</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>آدم‌هایی که می‌بینید</h1>
+  <p class="lead">
+    در یک ماه معمولی، چقدر با هر گروه زیر رفت‌وآمد یا گفت‌وگو دارید؟
+    منظور، گفت‌وگوی واقعی است، نه فقط رد شدن از کنار هم.
+  </p>
+  <div class="note">هر گروه یک خط دارد. اول «چقدر» را بزنید. اگر بیشتر از «هرگز» باشد، یک سؤال دوم هم باز می‌شود.</div>
+  <div class="card" id="groups"></div>
+
+  <h2>سرگرمی‌ها</h2>
+  <p class="lead">کدام‌ها را در چند ماه گذشته دیده‌اید یا انجام داده‌اید؟ هر تعداد که می‌خواهید بزنید.</p>
+  <div class="card" id="media"></div>
+</div>
+
+<div class="footbar"><div class="inner">
+  <button class="btn" id="go" type="button" disabled>ادامه</button>
+</div></div>
+
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="items_misc.js"></script>
+<script>
+(function(){
+  'use strict';
+  var b = Core.boot();
+  if (!b) return;
+
+  var C = ITEMS.CONTACT;
+  var log = new Core.Logger('contact');
+  var freq = {}, qual = {}, media = {};
+
+  /* ───────── تماس با گروه‌ها ───────── */
+  var host = Core.$('#groups');
+
+  C.groups.forEach(function (grp) {
+    var row = Core.el('div', 'contact-row');
+    row.appendChild(Core.el('div', 'contact-name', grp.label));
+
+    var fChips = Core.el('div', 'chips');
+    var qBox = Core.el('div');
+    qBox.style.display = 'none';
+    qBox.appendChild(Core.el('div', 'sub-label', 'این رفت‌وآمدها معمولاً چطور بوده؟'));
+    var qChips = Core.el('div', 'chips');
+    qBox.appendChild(qChips);
+
+    C.freq.forEach(function (f) {
+      var c = Core.el('button', 'chip', f.label);
+      c.type = 'button';
+      c.setAttribute('aria-pressed', 'false');
+      c.addEventListener('click', function () {
+        [].forEach.call(fChips.children, function (x) { x.setAttribute('aria-pressed', 'false'); });
+        c.setAttribute('aria-pressed', 'true');
+        freq[grp.code] = f.v;
+        log.mark('freq', { g: grp.code, v: f.v });
+        if (f.v === 0) {
+          qBox.style.display = 'none';
+          delete qual[grp.code];
+        } else {
+          qBox.style.display = '';
+        }
+        check();
+      });
+      fChips.appendChild(c);
+    });
+
+    C.qual.forEach(function (q) {
+      var c = Core.el('button', 'chip', q.label);
+      c.type = 'button';
+      c.setAttribute('aria-pressed', 'false');
+      c.addEventListener('click', function () {
+        [].forEach.call(qChips.children, function (x) { x.setAttribute('aria-pressed', 'false'); });
+        c.setAttribute('aria-pressed', 'true');
+        qual[grp.code] = q.v;
+        log.mark('qual', { g: grp.code, v: q.v });
+        check();
+      });
+      qChips.appendChild(c);
+    });
+
+    row.appendChild(fChips);
+    row.appendChild(qBox);
+    host.appendChild(row);
+  });
+
+  /* ───────── تنوع رسانه ───────── */
+  var mHost = Core.$('#media');
+  var mOpts = Core.el('div', 'opts');
+  ITEMS.MEDIA.forEach(function (m) {
+    var btn = Core.el('button', 'opt');
+    btn.type = 'button';
+    btn.setAttribute('aria-pressed', 'false');
+    btn.appendChild(Core.el('span', 'opt-key', '✓'));
+    btn.appendChild(Core.el('span', 'opt-body', m.label));
+    btn.addEventListener('click', function () {
+      media[m.id] = !media[m.id];
+      btn.setAttribute('aria-pressed', media[m.id] ? 'true' : 'false');
+      log.mark('media', { id: m.id, v: media[m.id] ? 1 : 0 });
+    });
+    mOpts.appendChild(btn);
+  });
+  var none = Core.el('button', 'opt');
+  none.type = 'button';
+  none.setAttribute('aria-pressed', 'false');
+  none.appendChild(Core.el('span', 'opt-key', '–'));
+  none.appendChild(Core.el('span', 'opt-body', 'هیچ‌کدام'));
+  none.addEventListener('click', function () {
+    var on = none.getAttribute('aria-pressed') === 'true';
+    none.setAttribute('aria-pressed', on ? 'false' : 'true');
+    if (!on) {
+      [].forEach.call(mOpts.children, function (x) { x.setAttribute('aria-pressed', 'false'); });
+      media = {};
+    }
+  });
+  mHost.appendChild(mOpts);
+  mHost.appendChild(none);
+
+  /* ───────── اعتبارسنجی و ارسال ───────── */
+  function missing() {
+    var m = [];
+    C.groups.forEach(function (g) {
+      if (freq[g.code] === undefined) m.push(g.code + '_freq');
+      else if (freq[g.code] > 0 && qual[g.code] === undefined) m.push(g.code + '_qual');
+    });
+    return m;
+  }
+  function check() { Core.$('#go').disabled = missing().length > 0; }
+
+  /**
+   * نمره‌دهی تماس بین‌گروهی — HEXP نسخهٔ ۲٫۰ (کمیت و کیفیت جدا؛ هیچ «وزن‌دهی دلخواه» روی آنتروپی نیست).
+   *   f_g  : فراوانی تماس خودگزارش‌شده (۰..۴؛ مقیاس رتبه‌ای، نه شمارش واقعی)
+   *   q_g  : کیفیت تماس (۱..۵) فقط برای گروه‌های با f_g>0
+   *   p_g  = f_g / Σf
+   *   HEXP_raw          = −Σ p_g ln p_g            (آنتروپی شانون، نات؛ جمله‌های p=0 صفر هستند، نه ln(p+ε))
+   *   HEXP_norm         = HEXP_raw / ln K          (K=۹؛ «یکنواختی» تماس)
+   *   HEXP_effective_N  = exp(HEXP_raw)            (عدد هیل مرتبهٔ ۱؛ «تعداد مؤثر گروه‌ها»؛ Jost, 2006)
+   *   CONTACT_breadth   = #{g: f_g>0} / K
+   *   CONTACT_intensity_proxy = Σ f_g / (4K)
+   *   CONTACT_quality_mean = Σ f_g q_g / Σ_{f>0} f_g ;  CONTACT_quality_norm = (mean−1)/4
+   * اگر Σf = 0 (هیچ تماسی)، آنتروپی «تعریف‌نشده» است و خالی ثبت می‌شود (نه ۰)، و CONTACT_none=1.
+   * HEXP_legacy_qweighted_norm: فرمول پایلوت (وزن‌دهی احتمال‌ها با کیفیت) فقط برای مقایسه با پایلوت ثبت می‌شود؛
+   * ⚠ در استنباط به کار نرود: بهبود کیفیت تماس با یک گروه می‌تواند آن را کم کند (مثال عددی: docs/FSJ_P1_Formula_Registry).
+   */
+  function computeH() {
+    var codes = C.groups.map(function (g) { return g.code; }), K = codes.length;
+    var f = codes.map(function (c) { return Number(freq[c] || 0); });
+    var q = codes.map(function (c) { return qual[c] === undefined ? null : Number(qual[c]); });
+    var total = f.reduce(function (a, x) { return a + x; }, 0);
+    var p = f.map(function (x) { return total ? x / total : 0; });
+    var defined = total > 0;
+    var H = defined ? Math.max(0, -p.reduce(function (a, x) { return a + (x > 0 ? x * Math.log(x) : 0); }, 0)) : null;   // max(0,·): از «−۰» جلوگیری می‌کند
+    var contacted = f.filter(function (x) { return x > 0; }).length;
+    var qnum = 0, qden = 0;
+    f.forEach(function (x, i) { if (x > 0 && q[i] !== null) { qnum += x * q[i]; qden += x; } });
+    var qmean = qden ? qnum / qden : null;
+    // فرمول قدیمی پایلوت (فقط ثبت تاریخی)
+    var legacy = null;
+    if (defined) {
+      var w = p.map(function (x, i) { var qq = (q[i] === null ? 3 : q[i]); return x * ((qq - 1) / 4 + 0.2); });
+      var ws = w.reduce(function (a, x) { return a + x; }, 0) || 1;
+      var pa = w.map(function (x) { return x / ws; });
+      legacy = -pa.reduce(function (a, x) { return a + (x > 0 ? x * Math.log(x) : 0); }, 0) / Math.log(K);
+    }
+    return {
+      K: K, total_freq: total, defined: defined, p: p, q: q,
+      H_raw: H, H_norm: defined ? H / Math.log(K) : null, effective_N: defined ? Math.exp(H) : null,
+      breadth: contacted / K, intensity: total / (4 * K),
+      quality_mean: qmean, quality_norm: qmean === null ? null : (qmean - 1) / 4,
+      legacy_norm: legacy
+    };
+  }
+  function r6(x) { return (x === null || x === undefined) ? '' : +Number(x).toFixed(6); }
+
+  Core.$('#go').addEventListener('click', function () {
+    var m = missing();
+    if (m.length) { Core.toast('هنوز ' + Core.fa(m.length) + ' مورد بی‌پاسخ مانده'); return; }
+    this.disabled = true;
+    this.textContent = 'در حال ذخیره…';
+
+    var H = computeH();
+    var out = {
+      task_type: 'contact',
+      scoring_version: 'HEXP-2.0-separate-quantity-quality',
+      CONTACT_none: H.defined ? 0 : 1,
+      HEXP_raw: r6(H.H_raw),
+      HEXP_norm: r6(H.H_norm),
+      HEXP_effective_N: r6(H.effective_N),
+      CONTACT_breadth: r6(H.breadth),
+      CONTACT_intensity_proxy: r6(H.intensity),
+      CONTACT_quality_mean: r6(H.quality_mean),
+      CONTACT_quality_norm: r6(H.quality_norm),
+      HEXP_legacy_qweighted_norm: r6(H.legacy_norm),
+      media_count: Object.keys(media).filter(function (k) { return media[k]; }).length,
+      p_json: JSON.stringify(H.p),
+      quality_json: JSON.stringify(H.q),
+      duration_ms: log.since(),
+      events_json: JSON.stringify(log.events)
+    };
+    C.groups.forEach(function (g) {
+      out['CT_' + g.code + '_freq'] = freq[g.code];
+      out['CT_' + g.code + '_qual'] = qual[g.code] === undefined ? '' : qual[g.code];
+    });
+    ITEMS.MEDIA.forEach(function (mm) { out[mm.id] = media[mm.id] ? 1 : 0; });
+
+    Core.finish('contact.html', out);
+  });
+
+  check();
+})();
+</script>
+</body>
+</html>

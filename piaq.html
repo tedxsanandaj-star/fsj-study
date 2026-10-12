@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>حس شما در این لحظه</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>حس شما در این لحظه</h1>
+  <p class="lead">همین الان، با هر یک از این جمله‌ها چقدر موافقید؟</p>
+  <div class="note">۱ یعنی کاملاً مخالف و ۷ یعنی کاملاً موافق. هر عددی که به حس شما نزدیک‌تر است را بزنید.</div>
+  <div id="form"></div>
+</div>
+
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="items_misc.js"></script>
+<script>
+(function(){
+  'use strict';
+  var b = Core.boot();
+  if (!b) return;
+
+  /* ترتیب نمایش:
+       ۱) هفت گویه حالت (PIAQ_STATE) — با هم تصادفی می‌شوند.
+       ۲) دو گویه بررسی فنی/توجه (PIAQ_CHECK) — ثابت، بعد از حالت‌ها؛
+          عمداً دیرتر می‌آیند تا پاسخ به گویه‌های حالت، پیش از یادآوری
+          «این بخش» به ذهن شرکت‌کننده، ثبت شده باشد.
+       ۳) گویه «حال عمومی» (PIAQ_MOOD_ITEM) — همیشه آخر، مقیاس متفاوت.  */
+  var order = Core.shuffle(ITEMS.PIAQ_STATE)
+    .concat(ITEMS.PIAQ_CHECK)
+    .concat([ITEMS.PIAQ_MOOD_ITEM]);
+
+  Core.renderForm(Core.$('#form'), order, {
+    section: 'piaq',
+    number: false,
+    onDone: function (a) {
+      var core4 = ['PIAQ_EMP','PIAQ_AWE','PIAQ_HUM','PIAQ_DIST'];
+      var total = core4.reduce(function (s,k) { return s + a[k]; }, 0) / 4;
+      var out = {
+        task_type: 'piaq',
+        PIAQ_Total: +total.toFixed(3),
+        E_pulse: +(total * 120).toFixed(1),
+        item_order: order.map(function (x) { return x.id; }).join('|'),
+        duration_ms: a._duration_ms,
+        events_json: JSON.stringify(a._events)
+      };
+      Object.keys(a).forEach(function (k) {
+        if (k.indexOf('PIAQ_') === 0) out[k] = a[k];
+      });
+      Core.finish('piaq.html', out);
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>بازی شباهت چهره — نمونهٔ کالیبراسیون</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="trials_fsj.js"></script>
+<script src="fsj_task.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   calibration.html — نمونهٔ مستقلِ «اعتبارسنجی کلید» (اختیاری، فاز ۱-الف)
+
+   هدف: به‌دست آوردن یک کلید اجماعی مستقل برای ۴۸ کوشش اصلی (فرم A + B) از افرادی که در مطالعهٔ اصلی شرکت نمی‌کنند،
+   تا کلید LOPO مطالعهٔ اصلی با یک نمونهٔ جدا سنجیده شود (پیش‌ثبت: analysis/calibration_key.py).
+   • هر داور: ۴۸ کوشش اصلی + ۴ کوشش توجه، به‌صورت «کدام عکس شبیه‌ترین است؟» (یک لمس؛ ۴گزینه‌ای).
+   • مسیر جدا از مطالعهٔ اصلی است (pid با پیشوند PC، task_type = fsj_calibration)؛ تخصیص گروه/ویدیو ندارد.
+   • فقط بزرگسال ≥ ۱۸ سال. کسانی که در مطالعهٔ اصلی بوده‌اند در تحلیل حذف می‌شوند.
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  var b = Core.boot({ guard: false, bar: false });
+  var S = Core.session();
+  var app = Core.$('#app');
+  if (S.mode !== 'calibration') {
+    app.innerHTML = '<div class="note"><strong>این مرورگر قبلاً برای مطالعهٔ اصلی استفاده شده است.</strong><br>' +
+      'برای نمونهٔ کالیبراسیون لطفاً از مرورگر یا دستگاه دیگری استفاده کنید (یا حالت ناشناس).</div>';
+    return;
+  }
+  var T = window.FSJ_TRIALS;
+  var log = new Core.Logger('calibration');
+  var KEYS = ['الف', 'ب', 'ج', 'د'];
+  var profile = {};
+  var trials = [], idx = 0, responses = [], hidden = 0;
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') hidden++; });
+
+  /* ── ۱) رضایت و مشخصات حداقلی ── */
+  var spec = [
+    { type: 'html', html: '<strong>دعوت به یک بازی کوتاه (حدود ۵ دقیقه).</strong><br>در هر مرحله یک عکس بالا و چهار عکس پایین می‌بینید؛ فقط عکسی را که از همه به عکس بالا «شبیه‌تر» است لمس کنید. جواب درست و غلط ندارد و هیچ اطلاعات هویتی ثبت نمی‌شود.' },
+    { id: 'C_consent', type: 'choice', q: 'آیا با شرکت در این بازی کوتاه و استفاده از پاسخ‌های بی‌نام برای پژوهش موافقید؟', keys: ['۱', '۲'],
+      options: [{ v: 1, label: 'بله، موافقم' }, { v: 0, label: 'خیر' }] },
+    { id: 'C_age_band', type: 'choice', q: 'سن شما؟', keys: ['۱', '۲', '۳', '۴', '۵'],
+      options: [{ v: 0, label: 'کمتر از ۱۸ سال' }, { v: 1, label: '۱۸ تا ۲۴' }, { v: 2, label: '۲۵ تا ۳۴' }, { v: 3, label: '۳۵ تا ۴۴' }, { v: 4, label: '۴۵ یا بیشتر' }] },
+    { id: 'C_in_main', type: 'choice', q: 'آیا قبلاً در «بازی شباهت چهره / بازی سرمایه‌گذاری» این پژوهش شرکت کرده‌اید؟', keys: ['۱', '۲', '۳'],
+      options: [{ v: 0, label: 'نه' }, { v: 1, label: 'بله' }, { v: 2, label: 'مطمئن نیستم' }] },
+    { id: 'C_iran', type: 'choice', q: 'بیشتر عمر خود را در ایران زندگی کرده‌اید؟', keys: ['۱', '۲'],
+      options: [{ v: 1, label: 'بله' }, { v: 0, label: 'خیر' }] }
+  ];
+  Core.renderForm(app, spec, {
+    section: 'calib_profile', number: false, buttonText: 'شروع',
+    onDone: function (a) {
+      profile = a;
+      Core.$('.footbar').remove();
+      if (a.C_consent !== 1 || a.C_age_band === 0) {
+        app.innerHTML = '<div class="note">سپاس از وقتی که گذاشتید. بر پایهٔ پاسخ‌ها، شرکت شما در این بخش لازم نیست.</div>';
+        return;
+      }
+      start();
+    }
+  });
+
+  /* ── ۲) کوشش‌ها: همهٔ ۴۸ کوشش اصلی (A+B) + ۴ توجه ── */
+  function start() {
+    var main = T.forms.A.items.concat(T.forms.B.items).map(function (it, i) { var q = {}; for (var k in it) q[k] = it[k]; q.form = i < T.forms.A.items.length ? 'A' : 'B'; return q; });
+    var catches = T.forms.A.catch.concat(T.forms.B.catch).map(function (it) { var q = {}; for (var k in it) q[k] = it[k]; q.form = it.id.charAt(1) === 'A' ? 'A' : 'B'; q.is_catch = 1; return q; });
+    var ordered = FSJ_internals.orderTrials(main, catches.slice(0, 2));
+    var extra = catches.slice(2);
+    extra.forEach(function (c, i) { var pos = Math.floor(ordered.length * (0.25 + 0.5 * Core.rand())) + i; ordered.splice(Math.min(pos, ordered.length), 0, c); });
+    trials = ordered;
+    var urls = [];
+    trials.forEach(function (t) { urls.push(Core.faceURL(t.t), Core.faceURL(t.g)); t.d.forEach(function (x) { urls.push(Core.faceURL(x)); }); });
+    urls = urls.filter(function (v, i, a) { return a.indexOf(v) === i; });
+    app.innerHTML = '<div class="center-screen"><div class="spinner"></div><p class="small">در حال آماده‌سازی تصویرها… <span id="plp">۰</span>٪</p></div>';
+    Core.preload(urls, function (d, n) { var e = Core.$('#plp'); if (e) e.textContent = Core.fa(Math.round(d / n * 100)); }).then(function () { app.innerHTML = ''; next(); });
+  }
+
+  function next() {
+    if (idx >= trials.length) return done();
+    var t = trials[idx];
+    app.innerHTML = '';
+    var head = Core.el('div', 'stage-label', 'عکس ' + Core.fa(idx + 1) + ' از ' + Core.fa(trials.length));
+    var stage = Core.el('div', 'stage'); app.appendChild(head); app.appendChild(stage);
+    var box = Core.el('div', 'target-box tall'); var im = Core.el('img'); im.src = Core.faceURL(t.t); im.alt = ''; box.appendChild(im); stage.appendChild(box);
+    stage.appendChild(Core.el('div', 'stage-label rank-hint', 'کدام عکس «شبیه‌ترین» به عکس بالاست؟ آن را لمس کنید'));
+    var ids = [t.g].concat(t.d), order = Core.shuffle([0, 1, 2, 3]), t0 = Core.now(), answered = false;
+    var grid = Core.el('div', 'grid4'); stage.appendChild(grid);
+    order.forEach(function (src, pos) {
+      var btn = Core.el('button', 'face-opt'); btn.type = 'button'; btn.setAttribute('aria-pressed', 'false');
+      var i2 = Core.el('img'); i2.src = Core.faceURL(ids[src]); i2.alt = 'گزینه ' + KEYS[pos]; btn.appendChild(i2); btn.appendChild(Core.el('span', 'k', KEYS[pos]));
+      btn.addEventListener('click', function () {
+        if (answered) return; answered = true; btn.setAttribute('aria-pressed', 'true');
+        var rt = Core.now() - t0;
+        responses.push({ i: idx + 1, id: t.id, form: t.form, catch: t.is_catch ? 1 : 0, target: t.t, options: order.map(function (s) { return ids[s]; }),
+          src_order: order, pick_src: src, pick_face: ids[src], pick_pos: pos + 1, rt_ms: rt, correct_catch: t.is_catch ? (ids[src] === t.t ? 1 : 0) : '' });
+        idx++; setTimeout(next, 220);
+      });
+      grid.appendChild(btn);
+    });
+    window.scrollTo(0, 0);
+  }
+
+  function done() {
+    app.innerHTML = '<div class="center-screen"><div class="spinner"></div><p class="small">در حال ذخیره…</p></div>';
+    var catchRows = responses.filter(function (r) { return r.catch === 1; });
+    var out = {
+      task_type: 'fsj_calibration', n_trials: responses.length, n_main: responses.length - catchRows.length,
+      catch_correct: catchRows.reduce(function (a, r) { return a + (r.correct_catch === 1 ? 1 : 0); }, 0), catch_total: catchRows.length,
+      C_age_band: profile.C_age_band, C_in_main: profile.C_in_main, C_iran: profile.C_iran, C_consent: profile.C_consent,
+      tab_hidden: hidden, duration_ms: log.since(), trials_json: JSON.stringify(responses), bank_version: T.version
+    };
+    Core.Q.push(out).catch(function () { }).then(function () {
+      app.innerHTML = '<div class="center-screen"><h1>سپاسگزاریم 🌿</h1><p class="lead">پاسخ‌های شما ثبت شد. می‌توانید این صفحه را ببندید.</p></div>';
+    });
+  }
+})();
+</script>
+</body>
+</html>
